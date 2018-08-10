@@ -34,6 +34,10 @@ def print_tester():
     print ("DUR_SPREAD:", tester.dur_spread)
     print ("DUR_OPER:", tester.dur_oper)
 
+def input_helper():
+    user_input = input('Please enter a descriptor \n')
+    return user_input
+
 def translate(value, in_lo, in_hi, out_lo, out_hi):
     #range the inputs
     in_range = in_hi - in_lo
@@ -303,7 +307,7 @@ def accum_phrase(iterations, joins): #accumulatively builds phrases
     iterations = int(iterations)
     joins = int(joins)
     sample_set = EntryMatcher()
-    sample_set.input_vars(input('Enter a descriptor set - Format is [Amp, AmpSpread, CentOp, Centroid, DurOp, Duration]'))
+    sample_set.input_vars(input_helper())
     sample_set.match()
     sample_set.store_metadata()
     concat = AudioSegment.empty()
@@ -424,8 +428,8 @@ def long_short_exp(iterations, joins, prob_lo, prob_hi):
     # Descriptor Matching
     long_samples  = EntryMatcher()
     short_samples = EntryMatcher()
-    long_samples.input_vars(input('Create a descriptor for long samples' + '\n'))
-    short_samples.input_vars(input('Create a descriptor for short samples' + '\n'))
+    long_samples.input_vars(input_helper)
+    short_samples.input_vars(input_helper)
     long_samples.match()
     short_samples.match()
 
@@ -433,7 +437,7 @@ def long_short_exp(iterations, joins, prob_lo, prob_hi):
     for x in range(iterations): # Each x is an iteration
         concat = AudioSegment.empty()
         progress = str(x / iterations * 100.)
-        print(progress + ' %' + '\n')
+        print(progress + ' % \n')
 
         for i in range(joins):                                  # Each i is a sample concatenation
             prob = translate(i, 0, joins, prob_lo, prob_hi)     # this probability referes to the chance for a SHORT sample
@@ -465,7 +469,7 @@ def jank(iterations, joins, join_length_min, join_length_max):
     #Generate a list of samples under 500ms and scramble/permute them#
     jank_samps = [None] * joins
     short_samples = EntryMatcher()
-    short_samples.input_vars("-96 48 > 0 > 100")
+    short_samples.input_vars()
     short_samples.match()
 
     for j in range (joins):
@@ -491,13 +495,10 @@ def jank(iterations, joins, join_length_min, join_length_max):
 
 # jank(10, 10, 3, 15)
 # long_short_exp(10, 150, 30, 70)
-def tester_functon():
-    tester = EntryMatcher()
-    tester.input_vars('amp <-> 12 -48 centroid > 5000 duration <-> 30 25')
-    tester.match()
-    print("The length of the result is ", len(tester.matcher_result))
+# create_new_dir()
+# accum_phrase(3, 10)
 
-tester_functon()
+
 
 
 

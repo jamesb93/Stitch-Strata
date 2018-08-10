@@ -20,9 +20,19 @@ amp = df.AMP
 centroid = df.CENTROID
 duration = df.DUR
 descriptor_names = ['amp', 'centroid', 'duration']
-matcher_ops = ['>', '<', '<->'  ]
 
 #---------- Useful Functions ----------#
+
+def print_tester():
+    print ("AMP_TEST:", tester.amp_test)
+    print ("AMP_SPREAD:", tester.amp_spread)
+    print ("AMP_OPER:", tester.amp_oper)
+    print ("CENT_TEST:", tester.cent_test)
+    print ("CENT_SPREAD:", tester.cent_spread)
+    print ("CENT_OPER:", tester.cent_oper)
+    print ("DUR_TEST:", tester.dur_test)
+    print ("DUR_SPREAD:", tester.dur_spread)
+    print ("DUR_OPER:", tester.dur_oper)
 
 def translate(value, in_lo, in_hi, out_lo, out_hi):
     #range the inputs
@@ -71,74 +81,137 @@ def create_new_dir(): #Create a new directory to store this session in
 
 class EntryMatcher:
     def __init__(self):
+        #amplitude variables
         self.amp_test   = 0.0
         self.amp_spread = 0.0
-        self.cent_test  = 0.0
+        self.amp_oper   = ''
+
+        #centroid variables
+        self.cent_test   = 0.0
+        self.cent_spread = 0.0
+        self.cent_oper   = ''
+
+        #duration variables
         self.dur_test   = 0.0
+        self.dur_spread = 0.0
         self.dur_op     = ''
-        self.cent_op    = ''
+        
+        #other variables for init
         self.results    = []
         self.input_list = []
-        self.inputs     = ''
+        self.idx = 0
     
     def store_metadata(self): #Create a text file inside directory with metadata
         metadata = open(new_dir+phrase_num+".txt", "a")
-        metadata.write("amp_test "   + "is " + str(self.amp_test)   +    "\n")
-        metadata.write("amp_spread " + "is " + str(self.amp_spread) +  "\n")
-        metadata.write("cent_test "  + "is " + str(self.cent_test)  +   "\n")
-        metadata.write("dur_test "   + "is " + str(self.dur_test)   +    "\n")
+        metadata.write("amp_test "   + "is " + str(self.amp_test)   + "\n")
+        metadata.write("amp_spread " + "is " + str(self.amp_spread) + "\n")
+        metadata.write("cent_test "  + "is " + str(self.cent_test)  + "\n")
+        metadata.write("dur_test "   + "is " + str(self.dur_test)   + "\n")
 
     def input_vars(self, inputs): # parameters passed to instance of match()
         self.inputs = inputs
         self.input_list = self.inputs.split()
-        if len(self.input_list) == 6:
-            self.amp_test   = float(self.input_list[0])
-            self.amp_spread = float(self.input_list[1])
-            self.cent_op    = str(self.input_list[2])
-            self.cent_test  = float(self.input_list[3])
-            self.dur_op     = str(self.input_list[4])
-            self.dur_test   = float(self.input_list[5])
-        elif len(self.input_list) == 7:
-            self.amp_test = float(self.input_list[0])
-            self.
-        elif len(self.input_list) == 8:
         
-        elif len(self.(input_list)) == 9:
 
-        
+        for i in range (len(self.input_list)):
+            if self.input_list[i] in descriptor_names:
+                self.current_desc = self.input_list[i]
+                self.current_oper = self.input_list[i+1]
+                if self.current_oper == '<' or self.current_oper == '>':
+                    self.current_test = self.input_list[i+2]
+                    self.current_spread = 0
+                elif self.current_oper == '<->':
+                    self.current_spread = self.input_list[i+2]
+                    self.current_test = self.input_list[i+3]
+
+                if self.current_desc == 'amp':
+                    self.amp_test = float(self.current_test)
+                    self.amp_spread = abs(float(self.current_spread))
+                    self.amp_oper = self.current_oper
+                elif self.current_desc == 'centroid':
+                    self.cent_test = float(self.current_test)
+                    self.cent_spread = abs(float(self.current_spread))
+                    self.cent_oper = self.current_oper
+                elif self.current_desc == 'duration':
+                    self.dur_test = float(self.current_test)
+                    self.dur_spread = abs(float(self.current_spread))
+                    self.dur_oper = self.current_oper
+
     def match(self): #Match Entries
-        self.results = []
-        if self.cent_op is '>' and self.dur_op is '>':
-            for i in range (0, df_len):
-                if (amp[i] <= self.amp_test + self.amp_spread and 
-                amp[i] >= self.amp_test - self.amp_spread and 
-                centroid[i] >= self.cent_test and
-                duration[i] >= self.dur_test):
-                    self.results.append(i+1)
+        
+        #---Testing---#
+        #test negative inputs for spread giving same as positive inputs <-- abs implemented
+        #order of arguments <-- Doesn't matter
+        #no arguments <-- Breaks
 
-        elif self.cent_op is '<' and self.dur_op is '<':
+        self.results = []
+        if self.amp_oper == '>':
             for i in range (0, df_len):
-                if (amp[i] <= self.amp_test + self.amp_spread and 
-                amp[i] >= self.amp_test - self.amp_spread and 
-                centroid[i] <= self.cent_test and
-                duration[i] <= self.dur_test):
-                    self.results.append(i+1)
+                if (amp[i] >= self.amp_test):
+                    self.results.append(i)
+
+        elif self.amp_oper == '<':
+            for i in range (0, df_len):
+                if (amp[i] <= self.amp_test):
+                    self.results.append(i)
+
+        elif self.amp_oper == '<->':
+            for i in range(0, df_len):
+                if (amp[i] >= self.amp_test - self.amp_spread and amp[i] <= self.amp_test + self.amp_spread):
+                    self.results.append(i)
         
-        elif self.cent_op is '>' and self.dur_op is '<':
-            for i in range (0, df_len):
-                if (amp[i] <= self.amp_test + self.amp_spread and 
-                amp[i] >= self.amp_test - self.amp_spread and 
-                centroid[i] >= self.cent_test and
-                duration[i] <= self.dur_test):
-                    self.results.append(i+1)
+        if not len(self.results) == 0:
+        #filter initially formed list
+            self.results_2 = []
+            for i in range(0, len(self.results)):
+                self.idx = self.results[i]
+                if self.cent_oper == '>':
+                    if (centroid[self.idx] >= self.cent_test):
+                        self.results_2.append(self.idx)
+
+
+                elif self.cent_oper == '<':
+                    if (centroid[self.idx] <= self.cent_test):
+                        self.results_2.append(self.idx)
+
+                elif self.cent_oper == '<->':
+                    if (centroid[self.idx] >= self.cent_test - self.cent_spread and centroid[self.idx] <= self.cent_test + self.cent_spread):
+                        self.results_2.append(self.idx)
+        else:
+            print("Matcher found nothing, make it less specific.")
+            exit()
+    
+        if not len(self.results_2) == 0:
+            #filter once more
+            self.results_3 = []
+            for i in range(0, len(self.results_2)):
+                self.idx = self.results_2[i]
+                if self.dur_oper == '>':
+                    if (duration[self.idx] >= self.dur_test):
+                        self.results_3.append(self.idx)
+
+                elif self.dur_oper == '<':
+                    if (duration[self.idx] <= self.dur_test):
+                        self.results_3.append(self.idx)
+
+                elif self.dur_oper == '<->':
+                    if (duration[self.idx] >= self.dur_test - self.dur_spread and duration[self.idx] <= self.dur_test + self.dur_spread):
+                        self.results_3.append(self.idx)
+        else:
+            print("Matcher found nothing, make it less specific.")
+            exit()
         
-        elif self.cent_op is '<' and self.dur_op is '>':
-            for i in range (0, df_len):
-                if (amp[i] <= self.amp_test + self.amp_spread and 
-                amp[i] >= self.amp_test - self.amp_spread and 
-                centroid[i] <= self.cent_test and
-                duration[i] >= self.dur_test):
-                    self.results.append(i+1)
+        if not len(self.results_3) == 0:
+            self.matcher_result = [0] * len(self.results_3)
+
+            # Increment every index by 1 because the samples are labelled from 1 :(
+            for i in range(0, len(self.results_3)):
+                self.matcher_result[i] = self.results_3[i] + 1
+        else:
+            print("Matcher found nothing, make it less specific.")
+            exit()
+
+        sorted(self.matcher_result)
 
 class MetaBehaviour:
     def __init__(self):
@@ -398,7 +471,6 @@ def jank(iterations, joins, join_length_min, join_length_max):
     for j in range (joins):
         jank_samps[j] = rn.choice(short_samples.results)
 
-    #NO DESCRIPTORS#
     for x in range(iterations):
         concat = AudioSegment.empty()
         rn.shuffle(jank_samps)
@@ -416,24 +488,22 @@ def jank(iterations, joins, join_length_min, join_length_max):
     print("I am done")
 
 #---------- Meta Commands ----------#
-create_new_dir()
-myoutput = MetaBehaviour()
-number_of_metas = 10
-for i in range(number_of_metas):
-    random_meta_behav = rn.randint(0, 2)
-    print(random_meta_behav)
-    if random_meta_behav == 0:
-        myoutput.growing_behaviour()
-    elif random_meta_behav == 1:
-        myoutput.interject()
-    elif random_meta_behav == 2:
-        myoutput.shrinking_behaviour()
-    elif random_meta_behav == 3:
-        myoutput.stereofy()
-myoutput.output_meta()
 
 # jank(10, 10, 3, 15)
 # long_short_exp(10, 150, 30, 70)
+def tester_functon():
+    tester = EntryMatcher()
+    tester.input_vars('amp <-> 12 -48 centroid > 5000 duration <-> 30 25')
+    tester.match()
+    print("The length of the result is ", len(tester.matcher_result))
+
+tester_functon()
+
+
+
+
+
+
 
 
 

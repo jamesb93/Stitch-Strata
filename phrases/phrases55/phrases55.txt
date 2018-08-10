@@ -1,0 +1,4 @@
+amp_test is -96.0
+amp_spread is 48.0
+cent_test is 0.0
+dur_test is 100.0

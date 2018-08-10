@@ -1,0 +1,10 @@
+## samples
+_samples/
+_voice_sounds/
+WIP/
+*.wav
+*.aif
+*.aiff
+*.wave
+
+.DS_Stor*

@@ -1,0 +1,4 @@
+amp_test is -100
+amp_spread is 3
+cent_test is 5000
+dur_test is 0

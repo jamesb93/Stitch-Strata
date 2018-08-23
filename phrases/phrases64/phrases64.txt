@@ -1,0 +1,1 @@
+amp < 0 centroid > 6000 duration <-> 75 125

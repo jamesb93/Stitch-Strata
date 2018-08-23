@@ -18,7 +18,7 @@ df = pd.read_csv(db_path)
 df_len = df.shape[0]
 amp = df.AMP
 centroid = df.CENTROID
-duration = df.DUR
+duration = df.DURATION
 descriptor_names = ['amp', 'centroid', 'duration']
 
 #---------- Useful Functions ----------#
@@ -81,6 +81,9 @@ def create_new_dir(): #Create a new directory to store this session in
         os.makedirs(new_dir)
     print(new_dir)
 
+def norm_list(l):
+    l = [float(i)/max(l) for i in l]  
+    return l
 #---------- Classes ----------#
 
 class EntryMatcher:
@@ -107,10 +110,7 @@ class EntryMatcher:
     
     def store_metadata(self): #Create a text file inside directory with metadata
         metadata = open(new_dir+phrase_num+".txt", "a")
-        metadata.write("amp_test "   + "is " + str(self.amp_test)   + "\n")
-        metadata.write("amp_spread " + "is " + str(self.amp_spread) + "\n")
-        metadata.write("cent_test "  + "is " + str(self.cent_test)  + "\n")
-        metadata.write("dur_test "   + "is " + str(self.dur_test)   + "\n")
+        metadata.write(self.inputs)
 
     def input_vars(self, inputs): # parameters passed to instance of match()
         self.inputs = inputs
@@ -210,7 +210,7 @@ class EntryMatcher:
 
             # Increment every index by 1 because the samples are labelled from 1 :(
             for i in range(0, len(self.results_3)):
-                self.matcher_result[i] = self.results_3[i] + 1
+                self.matcher_result[i] = self.results_3[i] + 0
         else:
             print("Matcher found nothing, make it less specific.")
             exit()
@@ -456,8 +456,6 @@ def long_short_exp(iterations, joins, prob_lo, prob_hi):
 
     print("I am done")
 
-# def negative_image(): #has a core sample group which is contrasted with totally random samples.
-
 def jank(iterations, joins, join_length_min, join_length_max):
 
     #Function Variables#
@@ -491,12 +489,51 @@ def jank(iterations, joins, join_length_min, join_length_max):
     short_samples.store_metadata()
     print("I am done")
 
+def group_of_similar(iterations, joins, list_limit):
+    gos = EntryMatcher()
+
+    input_string = 'amp < -70 centroid > 7900 duration <-> 10 14'
+    gos.input_vars(input_string)
+    gos.match()
+    print(len(gos.matcher_result))
+    print(gos.matcher_result)
+    concat = AudioSegment.empty()
+   
+    if list_limit > 0:
+        rn.shuffle(gos.matcher_result)
+        del gos.matcher_result[list_limit:]
+    elif list_limit == 0:
+        pass
+    
+    for x in range(iterations):
+        concat = AudioSegment.empty()
+
+        for i in range(joins):
+            choice = rn.randint(0, (len(gos.matcher_result) - 1))
+            choice = str(gos.matcher_result[choice])
+            join_sound = AudioSegment.from_file(source + choice + affix)
+            print(choice)
+            concat += join_sound
+        
+        num_iter = str(x)
+        concat.export(new_dir + num_iter + affix, format="wav")
+    
+    gos.store_metadata()
+    print ('Done', '-' * 40)
+
+    
+
+# def interpolate_two():
+
+
 #---------- Meta Commands ----------#
 
 # jank(10, 10, 3, 15)
 # long_short_exp(10, 150, 30, 70)
-# create_new_dir()
 # accum_phrase(3, 10)
+
+create_new_dir()
+group_of_similar(1, 100, 0)
 
 
 

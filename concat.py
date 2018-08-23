@@ -5,6 +5,8 @@ import random as rn
 import pandas as pd
 import numpy as np
 import os
+from itertools import repeat
+import sys
 
 #---------- Globals ----------#
 
@@ -84,6 +86,8 @@ def create_new_dir(): #Create a new directory to store this session in
 def norm_list(l):
     l = [float(i)/max(l) for i in l]  
     return l
+
+
 #---------- Classes ----------#
 
 class EntryMatcher:
@@ -416,7 +420,8 @@ def long_short(iterations, joins, prob): #
     print("I am done")
 
 def long_short_exp(iterations, joins, prob_lo, prob_hi):
-    
+    #Like long_short() but changes over a series of joins
+
     # Function Variables
     iterations = int(iterations)
     joins      = int(joins)
@@ -495,8 +500,6 @@ def group_of_similar(iterations, joins, list_limit):
     input_string = 'amp < -70 centroid > 7900 duration <-> 10 14'
     gos.input_vars(input_string)
     gos.match()
-    print(len(gos.matcher_result))
-    print(gos.matcher_result)
     concat = AudioSegment.empty()
    
     if list_limit > 0:
@@ -509,7 +512,7 @@ def group_of_similar(iterations, joins, list_limit):
         concat = AudioSegment.empty()
 
         for i in range(joins):
-            choice = rn.randint(0, (len(gos.matcher_result) - 1))
+            choice = rn.choice(gos.matcher_result)
             choice = str(gos.matcher_result[choice])
             join_sound = AudioSegment.from_file(source + choice + affix)
             print(choice)
@@ -521,7 +524,60 @@ def group_of_similar(iterations, joins, list_limit):
     gos.store_metadata()
     print ('Done', '-' * 40)
 
-    
+def grouped_short_interject_long(joins): #not done at all
+    create_new_dir()
+    first = EntryMatcher()
+    second = EntryMatcher()
+    third = EntryMatcher()
+
+    first.input_vars('amp > -40 centroid > 0 duration < 800')
+    # second.input_vars('amp < -90 centroid > 8000 duration < 40')
+    second.input_vars('amp <-> 12 -45 centroid <-> 500 5000 duration < 30')
+    first.match()
+    second.match()
+    concat = AudioSegment.empty()
+    for i in range(joins):
+        selection = rn.randint(0, 100)
+        if selection <= i:
+            choice = rn.choice(first.matcher_result) 
+        elif selection >= i:  
+            choice = rn.choice(second.matcher_result)   
+            
+        choice = str(choice)
+        join_sound = AudioSegment.from_file(source + choice + affix)
+        concat += join_sound
+        
+    num_iter = '0'
+    concat.export(new_dir + num_iter + affix, format="wav")
+
+def mixed_silence():
+    gos = EntryMatcher()
+    create_new_dir()
+    gos.input_vars('amp <-> 12 -45 centroid <-> 500 5000 duration < 30')
+    gos.match()
+
+    concat = AudioSegment.empty()
+    for i in range(500):
+        outcome = rn.randint(0, 1000)
+        if outcome < 600:
+            choice = str(rn.choice(gos.matcher_result)) 
+            join_sound = AudioSegment.from_file(source + choice + affix)   
+        elif outcome > 600:
+            type_of_silence = rn.randint(0, 1000)
+            if type_of_silence > 900:
+                dur = rn.randint(3, 5) * 1000
+            elif type_of_silence < 900:
+                dur = rn.randint(2, 15) * 10
+            join_sound = AudioSegment.silent(duration=dur)
+                   
+        concat += join_sound
+    concat.export(new_dir + '0' + affix, format="wav")
+
+#snapshot the longish sequences of events that are made
+
+
+
+
 
 # def interpolate_two():
 
@@ -532,8 +588,8 @@ def group_of_similar(iterations, joins, list_limit):
 # long_short_exp(10, 150, 30, 70)
 # accum_phrase(3, 10)
 
-create_new_dir()
-group_of_similar(1, 100, 0)
+mixed_silence()
+
 
 
 

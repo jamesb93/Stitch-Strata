@@ -5,14 +5,14 @@ import random as rn
 import pandas as pd
 import numpy as np
 import os
+import re
 from itertools import repeat
-import sys
 
 #---------- Globals ----------#
 
 this_path = os.path.dirname(os.path.abspath(__file__))
-source = this_path + "/voice_sounds/" # Sample Databases
-output = this_path + "/phrases/" # Output Folder
+source = f'{this_path}/voice_sounds/' # Sample Databases
+output = f'{'this_path} + "/phrases/" # Output Folder
 meta_path = this_path + "/samples/" # Simplify path finding for Meta Behaviour Class
 affix = ".wav" # Extension
 db_path = this_path + "/db.csv"
@@ -23,18 +23,13 @@ centroid = df.CENTROID
 duration = df.DURATION
 descriptor_names = ['amp', 'centroid', 'duration']
 
-#---------- Useful Functions ----------#
+fav_descs = [
+    'amp <-> 12 -36 centroid <-> 500 7500 duration < 500',
+    'amp <-> 12 -48 centroid <-> 500 5000 duration < 50',
+    'amp <-> 1 -55.220404 centroid <-> 1 5051.7412145 duration > 0' 
+]
 
-def print_tester():
-    print ("AMP_TEST:", tester.amp_test)
-    print ("AMP_SPREAD:", tester.amp_spread)
-    print ("AMP_OPER:", tester.amp_oper)
-    print ("CENT_TEST:", tester.cent_test)
-    print ("CENT_SPREAD:", tester.cent_spread)
-    print ("CENT_OPER:", tester.cent_oper)
-    print ("DUR_TEST:", tester.dur_test)
-    print ("DUR_SPREAD:", tester.dur_spread)
-    print ("DUR_OPER:", tester.dur_oper)
+#---------- Useful Functions ----------#
 
 def input_helper():
     user_input = input('Please enter a descriptor \n')
@@ -63,30 +58,11 @@ def select_routine(string):
     else:
         print("That routine does not exist")
 
-def create_new_dir(): #Create a new directory to store this session in
-    max = 0
-    global new_dir
-    global phrase_num
-    phrase_dir = os.listdir(output)
-    for item in phrase_dir:
-        if not item.startswith('.'):
-            item = int(item[7:])
-            if item > max:
-                max = item
-            else:
-                pass
-    max += 1
-    maxstring = str(max)
-    phrase_num = "phrases"+maxstring
-    new_dir = output+phrase_num+"/"
-    if not os.path.exists(new_dir):
-        os.makedirs(new_dir)
-    print(new_dir)
-
 def norm_list(l):
     l = [float(i)/max(l) for i in l]  
     return l
-
+def lines():
+    print('-' * 40)
 
 #---------- Classes ----------#
 
@@ -111,6 +87,7 @@ class EntryMatcher:
         self.results    = []
         self.input_list = []
         self.idx = 0
+        self.match_len = 0
     
     def store_metadata(self): #Create a text file inside directory with metadata
         metadata = open(new_dir+phrase_num+".txt", "a")
@@ -168,7 +145,7 @@ class EntryMatcher:
                 if (amp[i] >= self.amp_test - self.amp_spread and amp[i] <= self.amp_test + self.amp_spread):
                     self.results.append(i)
         
-        if not len(self.results) == 0:
+        if len(self.results) != 0:
         #filter initially formed list
             self.results_2 = []
             for i in range(0, len(self.results)):
@@ -176,7 +153,6 @@ class EntryMatcher:
                 if self.cent_oper == '>':
                     if (centroid[self.idx] >= self.cent_test):
                         self.results_2.append(self.idx)
-
 
                 elif self.cent_oper == '<':
                     if (centroid[self.idx] <= self.cent_test):
@@ -188,8 +164,8 @@ class EntryMatcher:
         else:
             print("Matcher found nothing, make it less specific.")
             exit()
-    
-        if not len(self.results_2) == 0:
+
+        if len(self.results_2) != 0:
             #filter once more
             self.results_3 = []
             for i in range(0, len(self.results_2)):
@@ -208,18 +184,11 @@ class EntryMatcher:
         else:
             print("Matcher found nothing, make it less specific.")
             exit()
-        
-        if not len(self.results_3) == 0:
-            self.matcher_result = [0] * len(self.results_3)
 
             # Increment every index by 1 because the samples are labelled from 1 :(
-            for i in range(0, len(self.results_3)):
-                self.matcher_result[i] = self.results_3[i] + 0
-        else:
-            print("Matcher found nothing, make it less specific.")
-            exit()
+        self.matcher_result = list(self.results_3)
 
-        sorted(self.matcher_result)
+        self.match_len = len(self.matcher_result)
 
 class MetaBehaviour:
     def __init__(self):
@@ -305,6 +274,27 @@ class MetaBehaviour:
     #build one that does repetitions of assemblages. like a macro version of repit for builder functions
     #build one that layers a repetitive long sound with a relatively stable stream of another
 
+class c_dir:
+    def __init__(self):
+        self.new_dir = ''
+        self.phrase_num = 1
+        self.max = 0
+        self.phrase_dir = os.listdir(output)
+
+    def make(self):
+        self.max = 0
+        for item in self.phrase_dir:
+            if not item.startswith('.'):
+                item = int(re.sub('[^0-9]', '', item))
+                if item > self.max:
+                    self.max = item
+        self.max += 1
+        self.max = str(self.max)
+        self.phrase_num = 'phrases' + '_' + self.max
+        self.new_dir = output + self.phrase_num + '/'
+        if not os.path.exists(self.new_dir):
+            os.makedirs(self.new_dir)
+        print(self.new_dir)
 #---------- Builder Functions ----------#
     
 def accum_phrase(iterations, joins): #accumulatively builds phrases
@@ -348,36 +338,6 @@ def search_small(iterations, joins): # search for small groups with random prope
             rand = rn.randint(0, len(small.results) - 1)
             if prev_rand != rand:
                 choice = str(small.results[rand])
-                join_sound = AudioSegment.from_file(source+choice+affix)
-                concat = concat.append(join_sound, crossfade=0)
-                prev_rand = rand
-                rand = rn.randint(0, len(small.results) - 1)
-            elif prev_rand == rand: 
-                rand = rn.randint(0, len(small.results) - 1)
-        num_iter = str(x) #convert the iteration number to string
-        concat.export(new_dir+num_iter+affix, format="wav") # export cmd
-
-def highest_centroid(iterations, joins): #search for a group with a small size and high centroid
-    iterations = int(iterations)
-    joins = int(joins)
-    samples = EntryMatcher()
-    centroid_match = 5000
-    samples.input_vars(0, 1000, centroid_match, 0)
-    samples.match()
-    while len(samples.results) > 30:
-        centroid_match += 10
-        samples.input_vars(0, 1000, centroid_match, 0)
-        samples.match()
-        print(len(samples.results))
-        if len(samples.results) > 30:
-            print ("Adding 10 and researching")
-    for x in range(iterations):
-        concat = AudioSegment.empty()
-        prev_rand = -1
-        for i in range(joins):
-            rand = rn.randint(0, len(samples.results) - 1)
-            if prev_rand != rand:
-                choice = str(samples.results[rand])
                 join_sound = AudioSegment.from_file(source+choice+affix)
                 concat = concat.append(join_sound, crossfade=0)
                 prev_rand = rand
@@ -575,20 +535,149 @@ def mixed_silence():
 
 #snapshot the longish sequences of events that are made
 
+def all_samples():
+    concat = AudioSegment.empty()
+    create_new_dir()
+    for i in range (500):
+        choice = str(i)
+        join_sound = AudioSegment.from_file(source + choice + affix) 
+        concat += join_sound
+        concat += AudioSegment.silent(duration=50)
+    concat.export(new_dir + '0' + affix, format="wav")
+
+def layers(joins):
+    dr = c_dir()
+    dr.make()
+    
+    gos = EntryMatcher()
+    gos.input_vars('amp <-> 6 -54 centroid <-> 90 4968 duration < 500')
+    gos.match()
+    print(gos.matcher_result)
+    rn.shuffle(gos.matcher_result)
+    concat = AudioSegment.empty()
+    if gos.match_len == 1:
+        print('There was only one matched element, you need more')
+        exit()
+    
+    for i in range(len(gos.matcher_result)):
+        choice = str(gos.matcher_result[i])
+        print('choice is', choice)
+        join_sound = AudioSegment.from_file(source + choice + affix)
+        concat += join_sound
+
+    for j in range(joins):
+        probability = translate(j, 0, joins, 5, 95  )
+        for x in range(gos.match_len):
+            choice = str(gos.matcher_result[x])
+            join_sound = AudioSegment.from_file(source + choice + affix)
+            gain = rn.randint(0, 100)
+            if gain > probability:
+                join_sound = join_sound.apply_gain(0)
+            elif gain < probability:
+                join_sound = join_sound.apply_gain(-120)
+            concat += join_sound
+       
+    concat.export(dr.new_dir + '0' + affix, format="wav")
+
+def law_of_proximity(iterations, divisions):
+
+    # start with an initial unit which is radically established as a whole. Sub units are developed from this by increasing the proximity between sub-sets. Proximity is relative, so a group can be distinguished by its proximity to another group. Or the same group of samples can form two different gestalt units by having different internal proximities.
+
+    sequence = []
+    # dr = c_dir()
+    # dr.make()
+
+    gos = EntryMatcher()
+    gos.input_vars('amp <-> 6 -54 centroid <-> 90 4968 duration < 500')
+    gos.match()
+
+    
+    for x in range(iterations):
+        concat = AudioSegment.empty()
+        rand_div      = [0] * divisions
+        rand_div_norm = [0] * divisions
+        rand_div_sum = 0
+
+        for r in range(divisions):
+            rand_div[r] = rn.randint(0, 100)
+
+        rand_div_sum = sum(rand_div)
+
+        for a in range(divisions):
+            rand_div_norm[a] = round( ((rand_div[a] / rand_div_sum) * gos.match_len), 0)
+        
+        print (sum(rand_div_norm))
+        print (gos.match_len)
+        print (rand_div_norm)
+
+def law_of_continuity(iterations, joins):
+
+    dr = c_dir()
+    dr.make()
+
+    gos = EntryMatcher()
+    gos.input_vars('amp > -27 centroid > 0 duration < 500')
+    gos.match()
+
+    for x in range(iterations):
+        sample_1 = AudioSegment.from_file(source + str(rn.choice(gos.matcher_result)) + affix)
+        sample_2 = AudioSegment.from_file(source + str(rn.choice(gos.matcher_result)) + affix)
+        concat = AudioSegment.empty()
+        unit   = AudioSegment.empty()
+        #find the biggest container
+        if len(sample_1) > len(sample_2):
+            unit += sample_1
+            unit.overlay(sample_2)
+
+        elif len(sample_2) > len(sample_2):
+            unit += sample_2
+            unit.overlay(sample_1)
+    
+        for i in range(joins):
+            concat += unit
+            concat += AudioSegment.silent(duration = 1000)
+
+        concat.export(dr.new_dir + str(x) + affix, format="wav")
+
+
+    
+
+    
+
+    # Aligning objects creates a gestalt unit. Removing the alignment points to something else. What is the something else? How are they aligned? Is it a number of samples that are arranged vertically and thus create a chord?
 
 
 
 
-# def interpolate_two():
+
+
+
+    #     for j in range(gos.match_len):
+    #         choice = str(gos.matcher_result[i])
+    #         join_sound = AudioSegment.from_file(source + choice + affix)
+    #         concat += join_sound
+        
+    #     for z in range(gos.match_len):
+
+
+
+
+    # concat.export(dr.new_dir + '0' + affix, format="wav")
+
+        #establish the group
+
+
 
 
 #---------- Meta Commands ----------#
 
-# jank(10, 10, 3, 15)
-# long_short_exp(10, 150, 30, 70)
-# accum_phrase(3, 10)
 
-mixed_silence()
+law_of_continuity(10, 10)
+
+# to_check = [3428, 3574, 3413, 3546, 3128, 2990]
+
+# for item in to_check:
+#     print(amp[item], centroid[item], duration[item])
 
 
 

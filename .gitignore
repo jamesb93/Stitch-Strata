@@ -1,10 +1,13 @@
 ## samples
-_samples/
-_voice_sounds/
+samples/
+voice_sounds/
+full_outs/
+
 WIP/
 *.wav
 *.aif
 *.aiff
 *.wave
+*.reapeaks
 
-.DS_Stor*
+.DS_Store*

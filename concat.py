@@ -6,22 +6,24 @@ import pandas as pd
 import numpy as np
 import os
 import re
-from itertools import repeat
+# from itertools import repeat
+import cc_util as util
+from cc_data import EntryMatcher
 
 #---------- Globals ----------#
 
-this_path = os.path.dirname(os.path.abspath(__file__))
+this_path = util.get_path()
 source = f'{this_path}/voice_sounds/' # Sample Databases
-output = f'{'this_path} + "/phrases/" # Output Folder
-meta_path = this_path + "/samples/" # Simplify path finding for Meta Behaviour Class
-affix = ".wav" # Extension
-db_path = this_path + "/db.csv"
+output = f'{this_path}/phrases/' # Output Folder
+meta_path = f'{this_path}/samples/' # Simplify path finding for Meta Behaviour Class
+affix = '.wav' # Extension
+db_path = f'{this_path}/db.csv'
 df = pd.read_csv(db_path)
 df_len = df.shape[0]
 amp = df.AMP
 centroid = df.CENTROID
 duration = df.DURATION
-descriptor_names = ['amp', 'centroid', 'duration']
+
 
 fav_descs = [
     'amp <-> 12 -36 centroid <-> 500 7500 duration < 500',
@@ -29,166 +31,7 @@ fav_descs = [
     'amp <-> 1 -55.220404 centroid <-> 1 5051.7412145 duration > 0' 
 ]
 
-#---------- Useful Functions ----------#
-
-def input_helper():
-    user_input = input('Please enter a descriptor \n')
-    return user_input
-
-def translate(value, in_lo, in_hi, out_lo, out_hi):
-    #range the inputs
-    in_range = in_hi - in_lo
-    out_range = out_hi - out_lo
-    scaled_value = float(value - in_lo) / float(in_range)
-    return out_lo + (scaled_value * out_range)
-
-def select_routine(string):
-    if string == "accum":
-        accum_phrase(input('Iterations' + '\n'), input('Joins' + '\n'))
-    elif string == "small":
-        search_small(input('Iterations' + '\n'), input('Joins' + '\n'))
-    elif string == "high":
-        highest_centroid(input('Iterations' + '\n'), input('Joins' + '\n'))
-    elif string == "meta":
-        meta_consutrction()
-    elif string == "long_short":
-        long_short(input('Iterations' + '\n'), input('Joins' + '\n'))
-    elif string == "long_short_exp":
-        long_short_exp(input('Iterations' + '\n'), input('Joins' + '\n'), input('Start Probability' + '\n'), input('End Probability' + '\n'))
-    else:
-        print("That routine does not exist")
-
-def norm_list(l):
-    l = [float(i)/max(l) for i in l]  
-    return l
-def lines():
-    print('-' * 40)
-
 #---------- Classes ----------#
-
-class EntryMatcher:
-    def __init__(self):
-        #amplitude variables
-        self.amp_test   = 0.0
-        self.amp_spread = 0.0
-        self.amp_oper   = ''
-
-        #centroid variables
-        self.cent_test   = 0.0
-        self.cent_spread = 0.0
-        self.cent_oper   = ''
-
-        #duration variables
-        self.dur_test   = 0.0
-        self.dur_spread = 0.0
-        self.dur_op     = ''
-        
-        #other variables for init
-        self.results    = []
-        self.input_list = []
-        self.idx = 0
-        self.match_len = 0
-    
-    def store_metadata(self): #Create a text file inside directory with metadata
-        metadata = open(new_dir+phrase_num+".txt", "a")
-        metadata.write(self.inputs)
-
-    def input_vars(self, inputs): # parameters passed to instance of match()
-        self.inputs = inputs
-        self.input_list = self.inputs.split()
-        
-
-        for i in range (len(self.input_list)):
-            if self.input_list[i] in descriptor_names:
-                self.current_desc = self.input_list[i]
-                self.current_oper = self.input_list[i+1]
-                if self.current_oper == '<' or self.current_oper == '>':
-                    self.current_test = self.input_list[i+2]
-                    self.current_spread = 0
-                elif self.current_oper == '<->':
-                    self.current_spread = self.input_list[i+2]
-                    self.current_test = self.input_list[i+3]
-
-                if self.current_desc == 'amp':
-                    self.amp_test = float(self.current_test)
-                    self.amp_spread = abs(float(self.current_spread))
-                    self.amp_oper = self.current_oper
-                elif self.current_desc == 'centroid':
-                    self.cent_test = float(self.current_test)
-                    self.cent_spread = abs(float(self.current_spread))
-                    self.cent_oper = self.current_oper
-                elif self.current_desc == 'duration':
-                    self.dur_test = float(self.current_test)
-                    self.dur_spread = abs(float(self.current_spread))
-                    self.dur_oper = self.current_oper
-
-    def match(self): #Match Entries
-        
-        #---Testing---#
-        #test negative inputs for spread giving same as positive inputs <-- abs implemented
-        #order of arguments <-- Doesn't matter
-        #no arguments <-- Breaks
-
-        self.results = []
-        if self.amp_oper == '>':
-            for i in range (0, df_len):
-                if (amp[i] >= self.amp_test):
-                    self.results.append(i)
-
-        elif self.amp_oper == '<':
-            for i in range (0, df_len):
-                if (amp[i] <= self.amp_test):
-                    self.results.append(i)
-
-        elif self.amp_oper == '<->':
-            for i in range(0, df_len):
-                if (amp[i] >= self.amp_test - self.amp_spread and amp[i] <= self.amp_test + self.amp_spread):
-                    self.results.append(i)
-        
-        if len(self.results) != 0:
-        #filter initially formed list
-            self.results_2 = []
-            for i in range(0, len(self.results)):
-                self.idx = self.results[i]
-                if self.cent_oper == '>':
-                    if (centroid[self.idx] >= self.cent_test):
-                        self.results_2.append(self.idx)
-
-                elif self.cent_oper == '<':
-                    if (centroid[self.idx] <= self.cent_test):
-                        self.results_2.append(self.idx)
-
-                elif self.cent_oper == '<->':
-                    if (centroid[self.idx] >= self.cent_test - self.cent_spread and centroid[self.idx] <= self.cent_test + self.cent_spread):
-                        self.results_2.append(self.idx)
-        else:
-            print("Matcher found nothing, make it less specific.")
-            exit()
-
-        if len(self.results_2) != 0:
-            #filter once more
-            self.results_3 = []
-            for i in range(0, len(self.results_2)):
-                self.idx = self.results_2[i]
-                if self.dur_oper == '>':
-                    if (duration[self.idx] >= self.dur_test):
-                        self.results_3.append(self.idx)
-
-                elif self.dur_oper == '<':
-                    if (duration[self.idx] <= self.dur_test):
-                        self.results_3.append(self.idx)
-
-                elif self.dur_oper == '<->':
-                    if (duration[self.idx] >= self.dur_test - self.dur_spread and duration[self.idx] <= self.dur_test + self.dur_spread):
-                        self.results_3.append(self.idx)
-        else:
-            print("Matcher found nothing, make it less specific.")
-            exit()
-
-            # Increment every index by 1 because the samples are labelled from 1 :(
-        self.matcher_result = list(self.results_3)
-
-        self.match_len = len(self.matcher_result)
 
 class MetaBehaviour:
     def __init__(self):
@@ -273,28 +116,6 @@ class MetaBehaviour:
 
     #build one that does repetitions of assemblages. like a macro version of repit for builder functions
     #build one that layers a repetitive long sound with a relatively stable stream of another
-
-class c_dir:
-    def __init__(self):
-        self.new_dir = ''
-        self.phrase_num = 1
-        self.max = 0
-        self.phrase_dir = os.listdir(output)
-
-    def make(self):
-        self.max = 0
-        for item in self.phrase_dir:
-            if not item.startswith('.'):
-                item = int(re.sub('[^0-9]', '', item))
-                if item > self.max:
-                    self.max = item
-        self.max += 1
-        self.max = str(self.max)
-        self.phrase_num = 'phrases' + '_' + self.max
-        self.new_dir = output + self.phrase_num + '/'
-        if not os.path.exists(self.new_dir):
-            os.makedirs(self.new_dir)
-        print(self.new_dir)
 #---------- Builder Functions ----------#
     
 def accum_phrase(iterations, joins): #accumulatively builds phrases
@@ -315,6 +136,7 @@ def accum_phrase(iterations, joins): #accumulatively builds phrases
                 concat = concat.append(join_sound, crossfade=0)
             num_iter = str(x) #convert the iteration number to string
             concat.export(new_dir+num_iter+affix, format="wav") #export cmd
+            concat.export(f'{new_dir}{num_iter}{affix}', format='wav') #export cmd with fstrings
     else:
         print("No samples matched")
 
@@ -546,7 +368,7 @@ def all_samples():
     concat.export(new_dir + '0' + affix, format="wav")
 
 def layers(joins):
-    dr = c_dir()
+    dr = utility.c_dir(output)
     dr.make()
     
     gos = EntryMatcher()
@@ -612,12 +434,12 @@ def law_of_proximity(iterations, divisions):
 
 def law_of_continuity(iterations, joins):
 
-    dr = c_dir()
-    dr.make()
+    dr = util.c_dir(output)
+    dr.make(output)
 
     gos = EntryMatcher()
     gos.input_vars('amp > -27 centroid > 0 duration < 500')
-    gos.match()
+    gos.match(df_len)
 
     for x in range(iterations):
         sample_1 = AudioSegment.from_file(source + str(rn.choice(gos.matcher_result)) + affix)
@@ -637,12 +459,17 @@ def law_of_continuity(iterations, joins):
             concat += unit
             concat += AudioSegment.silent(duration = 1000)
 
-        concat.export(dr.new_dir + str(x) + affix, format="wav")
+        concat.export(f'{dr.new_dir}{str(x)}{affix}', format="wav")
 
 
     
 
-    
+    # Trees
+
+        # Create a random tree structure and then use it to create long term sample concatenations
+        # (1(1 2 3(1 3 5))) would denote a structure containing 1 main group, a sub-group of 1 2 3 and a sub sub group inside that of 1 3 5.
+
+    # Different gestalts of the same unit set
 
     # Aligning objects creates a gestalt unit. Removing the alignment points to something else. What is the something else? How are they aligned? Is it a number of samples that are arranged vertically and thus create a chord?
 
@@ -673,11 +500,6 @@ def law_of_continuity(iterations, joins):
 
 
 law_of_continuity(10, 10)
-
-# to_check = [3428, 3574, 3413, 3546, 3128, 2990]
-
-# for item in to_check:
-#     print(amp[item], centroid[item], duration[item])
 
 
 

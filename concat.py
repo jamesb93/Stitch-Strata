@@ -6,24 +6,18 @@ import pandas as pd
 import numpy as np
 import os
 import re
-# from itertools import repeat
-import cc_util as util
+from itertools import repeat
+
+### My Libraries ###
+from cc_util import input_helper
+from cc_util import CreateDir
+from cc_util import GlobalVariables
 from cc_data import EntryMatcher
+import builders as bd
 
 #---------- Globals ----------#
 
-this_path = util.get_path()
-source = f'{this_path}/voice_sounds/' # Sample Databases
-output = f'{this_path}/phrases/' # Output Folder
-meta_path = f'{this_path}/samples/' # Simplify path finding for Meta Behaviour Class
-affix = '.wav' # Extension
-db_path = f'{this_path}/db.csv'
-df = pd.read_csv(db_path)
-df_len = df.shape[0]
-amp = df.AMP
-centroid = df.CENTROID
-duration = df.DURATION
-
+glovar = GlobalVariables()
 
 fav_descs = [
     'amp <-> 12 -36 centroid <-> 500 7500 duration < 500',
@@ -117,164 +111,6 @@ class MetaBehaviour:
     #build one that does repetitions of assemblages. like a macro version of repit for builder functions
     #build one that layers a repetitive long sound with a relatively stable stream of another
 #---------- Builder Functions ----------#
-    
-def accum_phrase(iterations, joins): #accumulatively builds phrases
-    iterations = int(iterations)
-    joins = int(joins)
-    sample_set = EntryMatcher()
-    sample_set.input_vars(input_helper())
-    sample_set.match()
-    sample_set.store_metadata()
-    concat = AudioSegment.empty()
-    join_sound = AudioSegment.empty()
-    if len(sample_set.results) != 0:
-        for x in range(iterations):
-            for i in range(joins):
-                rand = rn.randint(0, len(sample_set.results)- 1)
-                choice = str(sample_set.results[rand])
-                join_sound = AudioSegment.from_file(source+choice+affix)
-                concat = concat.append(join_sound, crossfade=0)
-            num_iter = str(x) #convert the iteration number to string
-            concat.export(new_dir+num_iter+affix, format="wav") #export cmd
-            concat.export(f'{new_dir}{num_iter}{affix}', format='wav') #export cmd with fstrings
-    else:
-        print("No samples matched")
-
-def search_small(iterations, joins): # search for small groups with random properties
-    length_results = 0
-    small = EntryMatcher()
-    while length_results < 10 or length_results > 20:
-        small.results = []
-        rand_amp = rn.randint(int(amp.min()), int(amp.max()))
-        rand_spread = rn.randint(3, 18)
-        rand_cent = rn.randint(int(centroid.min()), int(centroid.max()))
-        rand_dur = rn.randint(int(duration.min()), int(duration.max()))
-        small.input_vars(rand_amp, rand_spread, rand_cent, rand_dur)
-        small.match()
-        length_results = len(small.results)
-        print(length_results)
-    for x in range(iterations):
-        concat = AudioSegment.empty()
-        prev_rand = -1
-        for i in range(joins):
-            rand = rn.randint(0, len(small.results) - 1)
-            if prev_rand != rand:
-                choice = str(small.results[rand])
-                join_sound = AudioSegment.from_file(source+choice+affix)
-                concat = concat.append(join_sound, crossfade=0)
-                prev_rand = rand
-                rand = rn.randint(0, len(small.results) - 1)
-            elif prev_rand == rand: 
-                rand = rn.randint(0, len(small.results) - 1)
-        num_iter = str(x) #convert the iteration number to string
-        concat.export(new_dir+num_iter+affix, format="wav") # export cmd
-        
-def long_short(iterations, joins, prob): #
-    iterations = int(iterations)
-    joins = int(joins)
-    prob = int(prob * 1000)
-    print(prob)
-    long_samples = EntryMatcher()
-    short_samples = EntryMatcher()
-    long_samples.input_vars(input('Create a descriptor for long samples' + '\n'))
-    short_samples.input_vars(input('Create a descriptor for short samples' + '\n'))
-    long_samples.match()
-    print (len(long_samples.results))
-    short_samples.match()
-    print (len(short_samples.results))
-    # short_samples.store_metadata()
-    # long_samples.store_metadata()
-    concat = AudioSegment.empty()
-    join_sound = AudioSegment.empty()
-    for x in range(iterations):
-        concat = AudioSegment.empty()
-        print('I have completed ' + str(x) + ' iterations' + '\n')
-        for i in range(joins):
-            sorl = rn.randint(0, 1000)
-            if sorl > prob:
-                choice = str(rn.choice(long_samples.results))
-            elif sorl < prob:
-                choice = str(rn.choice(short_samples.results))
-            join_sound = AudioSegment.from_file(source+choice+affix)
-            concat = concat.append(join_sound, crossfade=0)
-        num_iter = str(x) #convert the iteration number to string
-        concat.export(new_dir+num_iter+affix, format="wav") #export cmd
-    print("I am done")
-
-def long_short_exp(iterations, joins, prob_lo, prob_hi):
-    #Like long_short() but changes over a series of joins
-
-    # Function Variables
-    iterations = int(iterations)
-    joins      = int(joins)
-    prob_lo    = float(prob_lo)
-    prob_hi    = float(prob_hi)
-    concat     = AudioSegment.empty()
-    join_sound = AudioSegment.empty()
-
-    # Descriptor Matching
-    long_samples  = EntryMatcher()
-    short_samples = EntryMatcher()
-    long_samples.input_vars(input_helper)
-    short_samples.input_vars(input_helper)
-    long_samples.match()
-    short_samples.match()
-
-    # Process
-    for x in range(iterations): # Each x is an iteration
-        concat = AudioSegment.empty()
-        progress = str(x / iterations * 100.)
-        print(progress + ' % \n')
-
-        for i in range(joins):                                  # Each i is a sample concatenation
-            prob = translate(i, 0, joins, prob_lo, prob_hi)     # this probability referes to the chance for a SHORT sample
-            sorl = (rn.randint(0, 1000) / 1000.)                # random value to test
-
-            if sorl > prob:                                     # if random-v is greater than prob
-                choice = str(rn.choice(long_samples.results))
-            elif sorl < prob:                                   # if random-v is less than prob
-                choice = str(rn.choice(short_samples.results))
-
-            join_sound = AudioSegment.from_file(source+choice+affix) # append the sound to the concatenation stream
-            concat += join_sound
-
-        num_iter = str(x) # convert the iteration number to string
-        concat.export(new_dir+num_iter+affix, format="wav") # export cmd
-
-    print("I am done")
-
-def jank(iterations, joins, join_length_min, join_length_max):
-
-    #Function Variables#
-    iterations = int(iterations)
-    joins      = int(joins)
-    concat     = AudioSegment.empty()
-    join_sound = AudioSegment.empty()
-
-    #Generate a list of samples under 500ms and scramble/permute them#
-    jank_samps = [None] * joins
-    short_samples = EntryMatcher()
-    short_samples.input_vars()
-    short_samples.match()
-
-    for j in range (joins):
-        jank_samps[j] = rn.choice(short_samples.results)
-
-    for x in range(iterations):
-        concat = AudioSegment.empty()
-        rn.shuffle(jank_samps)
-
-        for i in range(joins):
-            rep = rn.randint(join_length_min, join_length_max)
-            choice = str(jank_samps[i])
-            join_sound = AudioSegment.from_file(source+choice+affix) # append the sound to the concatenation stream
-            concat += join_sound * rep
-
-        num_iter = str(x) # convert the iteration number to string
-        concat.export(new_dir+num_iter+affix, format="wav") # export cmd
-
-    short_samples.store_metadata()
-    print("I am done")
 
 def group_of_similar(iterations, joins, list_limit):
     gos = EntryMatcher()
@@ -332,31 +168,6 @@ def grouped_short_interject_long(joins): #not done at all
     num_iter = '0'
     concat.export(new_dir + num_iter + affix, format="wav")
 
-def mixed_silence():
-    gos = EntryMatcher()
-    create_new_dir()
-    gos.input_vars('amp <-> 12 -45 centroid <-> 500 5000 duration < 30')
-    gos.match()
-
-    concat = AudioSegment.empty()
-    for i in range(500):
-        outcome = rn.randint(0, 1000)
-        if outcome < 600:
-            choice = str(rn.choice(gos.matcher_result)) 
-            join_sound = AudioSegment.from_file(source + choice + affix)   
-        elif outcome > 600:
-            type_of_silence = rn.randint(0, 1000)
-            if type_of_silence > 900:
-                dur = rn.randint(3, 5) * 1000
-            elif type_of_silence < 900:
-                dur = rn.randint(2, 15) * 10
-            join_sound = AudioSegment.silent(duration=dur)
-                   
-        concat += join_sound
-    concat.export(new_dir + '0' + affix, format="wav")
-
-#snapshot the longish sequences of events that are made
-
 def all_samples():
     concat = AudioSegment.empty()
     create_new_dir()
@@ -368,9 +179,7 @@ def all_samples():
     concat.export(new_dir + '0' + affix, format="wav")
 
 def layers(joins):
-    dr = utility.c_dir(output)
-    dr.make()
-    
+
     gos = EntryMatcher()
     gos.input_vars('amp <-> 6 -54 centroid <-> 90 4968 duration < 500')
     gos.match()
@@ -401,68 +210,30 @@ def layers(joins):
        
     concat.export(dr.new_dir + '0' + affix, format="wav")
 
-def law_of_proximity(iterations, divisions):
+dr = CreateDir(glovar)
 
-    # start with an initial unit which is radically established as a whole. Sub units are developed from this by increasing the proximity between sub-sets. Proximity is relative, so a group can be distinguished by its proximity to another group. Or the same group of samples can form two different gestalt units by having different internal proximities.
-
-    sequence = []
-    # dr = c_dir()
-    # dr.make()
-
-    gos = EntryMatcher()
-    gos.input_vars('amp <-> 6 -54 centroid <-> 90 4968 duration < 500')
-    gos.match()
-
-    
-    for x in range(iterations):
-        concat = AudioSegment.empty()
-        rand_div      = [0] * divisions
-        rand_div_norm = [0] * divisions
-        rand_div_sum = 0
-
-        for r in range(divisions):
-            rand_div[r] = rn.randint(0, 100)
-
-        rand_div_sum = sum(rand_div)
-
-        for a in range(divisions):
-            rand_div_norm[a] = round( ((rand_div[a] / rand_div_sum) * gos.match_len), 0)
-        
-        print (sum(rand_div_norm))
-        print (gos.match_len)
-        print (rand_div_norm)
-
-def law_of_continuity(iterations, joins):
-
-    dr = util.c_dir(output)
-    dr.make(output)
-
-    gos = EntryMatcher()
-    gos.input_vars('amp > -27 centroid > 0 duration < 500')
-    gos.match(df_len)
-
-    for x in range(iterations):
-        sample_1 = AudioSegment.from_file(source + str(rn.choice(gos.matcher_result)) + affix)
-        sample_2 = AudioSegment.from_file(source + str(rn.choice(gos.matcher_result)) + affix)
-        concat = AudioSegment.empty()
-        unit   = AudioSegment.empty()
-        #find the biggest container
-        if len(sample_1) > len(sample_2):
-            unit += sample_1
-            unit.overlay(sample_2)
-
-        elif len(sample_2) > len(sample_2):
-            unit += sample_2
-            unit.overlay(sample_1)
-    
-        for i in range(joins):
-            concat += unit
-            concat += AudioSegment.silent(duration = 1000)
-
-        concat.export(f'{dr.new_dir}{str(x)}{affix}', format="wav")
+bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
+# bd.mixed_silence(1, 20, 0.8, 0.75, glovar, dr)
+# bd.long_short(2, 100, 800, glovar, dr)
+# bd.search_small(2, 50, 3, 7, glovar, dr)
+# bd.accum_phrase(1, 100, glovar, dr)
+# bd.long_short_exp(2, 500, 0.3, 0.9, glovar, dr)
 
 
-    
+
+
+
+
+
+### each study is just one sample set, and you demonstrate a number of processes based on this ####### !!!!!!!!!!!!!!!!!!
+### Test entry matchting ###
+# em = EntryMatcher()
+# em.input_vars(input_helper())
+# em.match(glovar)
+
+# for elem in em.match_result:
+#     print(glovar.duration[elem])
+### ---- --- ---- --- ---- --- ---- ###
 
     # Trees
 
@@ -472,11 +243,6 @@ def law_of_continuity(iterations, joins):
     # Different gestalts of the same unit set
 
     # Aligning objects creates a gestalt unit. Removing the alignment points to something else. What is the something else? How are they aligned? Is it a number of samples that are arranged vertically and thus create a chord?
-
-
-
-
-
 
 
     #     for j in range(gos.match_len):
@@ -492,14 +258,6 @@ def law_of_continuity(iterations, joins):
     # concat.export(dr.new_dir + '0' + affix, format="wav")
 
         #establish the group
-
-
-
-
-#---------- Meta Commands ----------#
-
-
-law_of_continuity(10, 10)
 
 
 

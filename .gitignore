@@ -3,6 +3,7 @@ samples/
 voice_sounds/
 full_outs/
 __pycache__/
+*.rtf
 
 WIP/
 *.wav

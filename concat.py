@@ -112,71 +112,8 @@ class MetaBehaviour:
     #build one that layers a repetitive long sound with a relatively stable stream of another
 #---------- Builder Functions ----------#
 
-def group_of_similar(iterations, joins, list_limit):
-    gos = EntryMatcher()
 
-    input_string = 'amp < -70 centroid > 7900 duration <-> 10 14'
-    gos.input_vars(input_string)
-    gos.match()
-    concat = AudioSegment.empty()
-   
-    if list_limit > 0:
-        rn.shuffle(gos.matcher_result)
-        del gos.matcher_result[list_limit:]
-    elif list_limit == 0:
-        pass
-    
-    for x in range(iterations):
-        concat = AudioSegment.empty()
 
-        for i in range(joins):
-            choice = rn.choice(gos.matcher_result)
-            choice = str(gos.matcher_result[choice])
-            join_sound = AudioSegment.from_file(source + choice + affix)
-            print(choice)
-            concat += join_sound
-        
-        num_iter = str(x)
-        concat.export(new_dir + num_iter + affix, format="wav")
-    
-    gos.store_metadata()
-    print ('Done', '-' * 40)
-
-def grouped_short_interject_long(joins): #not done at all
-    create_new_dir()
-    first = EntryMatcher()
-    second = EntryMatcher()
-    third = EntryMatcher()
-
-    first.input_vars('amp > -40 centroid > 0 duration < 800')
-    # second.input_vars('amp < -90 centroid > 8000 duration < 40')
-    second.input_vars('amp <-> 12 -45 centroid <-> 500 5000 duration < 30')
-    first.match()
-    second.match()
-    concat = AudioSegment.empty()
-    for i in range(joins):
-        selection = rn.randint(0, 100)
-        if selection <= i:
-            choice = rn.choice(first.matcher_result) 
-        elif selection >= i:  
-            choice = rn.choice(second.matcher_result)   
-            
-        choice = str(choice)
-        join_sound = AudioSegment.from_file(source + choice + affix)
-        concat += join_sound
-        
-    num_iter = '0'
-    concat.export(new_dir + num_iter + affix, format="wav")
-
-def all_samples():
-    concat = AudioSegment.empty()
-    create_new_dir()
-    for i in range (500):
-        choice = str(i)
-        join_sound = AudioSegment.from_file(source + choice + affix) 
-        concat += join_sound
-        concat += AudioSegment.silent(duration=50)
-    concat.export(new_dir + '0' + affix, format="wav")
 
 def layers(joins):
 
@@ -212,7 +149,9 @@ def layers(joins):
 
 dr = CreateDir(glovar)
 
-bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
+bd.interp_groups(300, glovar, dr)
+# bd.all_samples(glovar, dr)
+# bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
 # bd.mixed_silence(1, 20, 0.8, 0.75, glovar, dr)
 # bd.long_short(2, 100, 800, glovar, dr)
 # bd.search_small(2, 50, 3, 7, glovar, dr)
@@ -220,12 +159,10 @@ bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
 # bd.long_short_exp(2, 500, 0.3, 0.9, glovar, dr)
 
 
-
-
-
-
-
 ### each study is just one sample set, and you demonstrate a number of processes based on this ####### !!!!!!!!!!!!!!!!!!
+### Maximum each variation deals with only one or two sample sets. can we use more? ###
+
+
 ### Test entry matchting ###
 # em = EntryMatcher()
 # em.input_vars(input_helper())
@@ -245,19 +182,8 @@ bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
     # Aligning objects creates a gestalt unit. Removing the alignment points to something else. What is the something else? How are they aligned? Is it a number of samples that are arranged vertically and thus create a chord?
 
 
-    #     for j in range(gos.match_len):
-    #         choice = str(gos.matcher_result[i])
-    #         join_sound = AudioSegment.from_file(source + choice + affix)
-    #         concat += join_sound
-        
-    #     for z in range(gos.match_len):
 
 
-
-
-    # concat.export(dr.new_dir + '0' + affix, format="wav")
-
-        #establish the group
 
 
 

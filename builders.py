@@ -196,14 +196,14 @@ def mixed_silence(iterations, joins, samp_prob, silence_prob, obj, drs):
         concat.export(f'{drs.new_dir}{num_iter}{obj.affix}', format='wav') #export
 
 def jank(iterations, joins, rep_min, rep_max, obj, drs):
-    """JANK
+    """Robotically repeated groups of samples
     
     Keyword arguments:
 
     iterations -- how many sets of concatenations
     joins -- how many concatenations per iteration
-    join_length_min --
-    join_length max --
+    rep_min -- minimum amount of reptitions
+    rep_max -- maximum amount of reptitions
     obj -- pass the global variable class to reference directory and affix information
     drs -- pass the name of the class that creates your new directory
     
@@ -231,3 +231,55 @@ def jank(iterations, joins, rep_min, rep_max, obj, drs):
 
         num_iter = str(x) # convert the iteration number to string
         concat.export(f'{drs.new_dir}{num_iter}{obj.affix}', format='wav') #export
+
+def interp_groups(joins, obj, drs): #not done at all
+    """Interpolates two groups
+    
+    Keyword arguments:
+
+    joins -- how many concatenations per iteration
+    obj -- pass the global variable class to reference directory and affix information
+    drs -- pass the name of the class that creates your new directory
+    
+    """
+    first = EntryMatcher()
+    second = EntryMatcher()
+    third = EntryMatcher()
+
+    first.input_vars('amp > -40 centroid > 0 duration < 800')
+    # second.input_vars('amp < -90 centroid > 8000 duration < 40')
+    second.input_vars('amp <-> 12 -45 centroid <-> 500 5000 duration < 30')
+    first.match(obj)
+    second.match(obj)
+    concat = AudioSegment.empty()
+    for i in range(joins):
+        selection = rn.uniform(0, 1)
+        line = util.translate(i, 0, joins, 0, 1)
+        if selection <= line:
+            choice = rn.choice(first.match_result) 
+        elif selection >= line:  
+            choice = rn.choice(second.match_result)   
+        choice = str(choice)
+        join_sound = AudioSegment.from_file(f'{obj.source}{choice}{obj.affix}')
+        concat += join_sound
+
+    concat.export(f'{drs.new_dir}gsil-output{obj.affix}', format='wav') #export
+
+def all_samples(obj, drs):
+    """Plays back all samples in index order
+    
+    Keyword arguments:
+
+    obj -- pass the global variable class to reference directory and affix information
+    drs -- pass the name of the class that creates your new directory
+    
+    """
+    concat = AudioSegment.empty()
+    print(obj.df_len)
+    for i in range (0, obj.df_len):
+        choice = str(i)
+        join_sound = AudioSegment.from_file(f'{obj.source}{choice}{obj.affix}')
+        concat += join_sound
+        concat += AudioSegment.silent(duration=20)
+        print(f'Concatenated {i} samples')
+    concat.export(f'{drs.new_dir}all{obj.affix}', format='wav') #export

@@ -44,7 +44,17 @@ def input_helper():
     return user_input
 
 def translate(value, in_lo, in_hi, out_lo, out_hi):
-    #range the inputs
+    """translates values from an input range to an output range
+    
+    Keyword arguments:
+
+    value -- input value
+    in_lo -- low input
+    in_hi -- high input
+    out_lo -- low output
+    out_hi -- high output
+    
+    """
     in_range = in_hi - in_lo
     out_range = out_hi - out_lo
     scaled_value = float(value - in_lo) / float(in_range)

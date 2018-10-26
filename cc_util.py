@@ -29,7 +29,7 @@ class GlobalVariables:
     def __init__(self):
         self.this_path = get_path()
         self.source = f'{self.this_path}/phonemes/' # Sample Databases
-        self.output = f'{self.this_path}/phrases/' # Output Folder
+        self.output = f'{self.this_path}/outputs/' # Output Folder
         self.meta_path = f'{self.this_path}/samples/' # Simplify path finding for Meta Behaviour Class
         self.affix = '.wav' # Extension
         self.db_path = f'{self.this_path}/db.csv'

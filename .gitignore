@@ -3,14 +3,16 @@ samples/
 voice_sounds/
 full_outs/
 __pycache__/
-*.rtf
 _journal.rtf
 
-WIP/
+*.rtf
+*.txt
+*.csv
 *.wav
 *.aif
 *.aiff
 *.wave
 *.reapeaks
+
 .DS_Store*
-sandbox.py
+

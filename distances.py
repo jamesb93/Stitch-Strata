@@ -3,13 +3,25 @@ import numpy as np
 import pandas as pd
 import os
 import time
+import random as rn
 from scipy import spatial as spat
 import itertools as it
 import matplotlib.pyplot as plt
+
 start = time.time()
+this_path = os.path.dirname(os.path.abspath(__file__))
+
 def norm_list(l):
     l = [float(i)/max(l) for i in l]  
     return l
+
+def write_to_coll(arr, name):
+    name = str(name)
+    with open(f'{this_path}/{name}.txt', 'w') as f:
+        counter = 0
+        for item in arr:
+            f.write(f'{counter}, {item};\n')
+            counter += 1
 
 def status(progress, max_progress):
     os.system("clear")
@@ -121,24 +133,59 @@ end_sample = 94
 attractor_coords = [data.CENTROID[end_sample], data.DURATION[end_sample]]
 start_sample = 1853
 transitions = []
-while start_sample != end_sample:
-    transitions.append(start_sample)
-    neybuz = find_neighbours(start_sample, delaun)
-    temp_distances = [None] * len(neybuz)
 
-    counter = 0
-    for sample in neybuz:
-        temp_distances[counter] = eu_dist([data.CENTROID[sample], data.DURATION[sample]], attractor_coords)
-        counter += 1
-    argmin = find_min_fast(temp_distances, 1)
-    start_sample = int(neybuz[argmin])
+def impulses():
+    """ 
+    Generate multiple short impulses; pathways through the space to quickly get from a-b via the delaunay network
+    """
+    end_sample = 94
+    attractor_coords = [data.CENTROID[end_sample], data.DURATION[end_sample]]
+    start_sample = 1853
+    transitions = []
+    while start_sample != end_sample:
+        transitions.append(start_sample)
+        neybuz = find_neighbours(start_sample, delaun)
+        temp_distances = [None] * len(neybuz)
 
-transitions.append(end_sample)
+        counter = 0
+        for sample in neybuz:
+            temp_distances[counter] = eu_dist([data.CENTROID[sample], data.DURATION[sample]], attractor_coords)
+            counter += 1
+        arg = find_min_fast(temp_distances, 2)
 
-print(transitions)
+        start_sample = int(neybuz[arg[0]])
+        print(start_sample)
 
-for idx in transitions:
-    print(data.CENTROID[idx])
+    transitions.append(end_sample)
+
+    print(transitions)
+
+def crawl(start, end, output_name):
+    """ 
+    Crawls at random through the Delaunay network
+
+    Arguments:
+
+    start -- the sample to start at
+    end -- the sample to end at
+    output_name -- name of the text file to write the results to
+    """
+    end_sample = end
+    start_sample = start
+    transitions = []
+    while start_sample != end_sample:
+        transitions.append(start_sample)
+        neybuz = find_neighbours(start_sample, delaun)
+
+
+        start_sample = rn.choice(neybuz)
+        print(start_sample)
+
+    transitions.append(end_sample)
+    print(transitions)
+    write_to_coll(transitions, output_name)
+
+crawl(1853, 94, 'crawl2')
 
 
 

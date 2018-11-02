@@ -1,32 +1,36 @@
 #---------- Imports ----------#
-
 from pydub import AudioSegment
 import random as rn
 import pandas as pd
 import numpy as np
 import os
 import re
-from itertools import repeat
 
 ### My Libraries ###
 from cc_util import input_helper
 from cc_util import CreateDir
 from cc_util import GlobalVariables
 from cc_data import EntryMatcher
+from cc_data import DataContainer
+from cc_data import MetaWrapper
 import builders as bd
+import gestalts as gs
+import iters as ter
 
 #---------- Globals ----------#
-
 glovar = GlobalVariables()
+direc = CreateDir(glovar) #pass the name of the instance containing various global variables
 
 fav_descs = [
-    'amp <-> 12 -36 centroid <-> 500 7500 duration < 500',
+    'amp <-> 12 -36 centroid <-> 500 7500 duration < 500', # good with iters
     'amp <-> 12 -48 centroid <-> 500 5000 duration < 50',
-    'amp <-> 1 -55.220404 centroid <-> 1 5051.7412145 duration > 0' 
+    'amp <-> 1 -55.220404 centroid <-> 1 5051.7412145 duration > 0',
+    'amp < 0 centroid > 7500 duration > 0' 
+    'amp < 0 centroid < 700 duration > 0'
+    'amp < 0 centroid > 13000 duration > 0'
 ]
 
 #---------- Classes ----------#
-
 class MetaBehaviour:
     def __init__(self):
         self.final_stereo   = AudioSegment.empty() # Final stereo output
@@ -110,11 +114,8 @@ class MetaBehaviour:
 
     #build one that does repetitions of assemblages. like a macro version of repit for builder functions
     #build one that layers a repetitive long sound with a relatively stable stream of another
+
 #---------- Builder Functions ----------#
-
-
-
-
 def layers(joins):
 
     gos = EntryMatcher()
@@ -147,29 +148,65 @@ def layers(joins):
        
     concat.export(dr.new_dir + '0' + affix, format="wav")
 
-dr = CreateDir(glovar)
+### --- Builders --- ###
+# bd.interp_groups(300, glovar, direc)
+# bd.all_samples(glovar, direc)
+# bd.jank(2, 50, 3, 7, glovar, direc) # increase spacing out of jank over
+# bd.mixed_silence(1, 20, 0.8, 0.75, glovar, direc)
+# bd.long_short(2, 100, 800, glovar, direc)
+# bd.search_small(2, 50, 3, 7, glovar, direc)
+# bd.accum_phrase(1, 100, glovar, direc)
+# bd.long_short_exp(2, 500, 0.3, 0.9, glovar, direc)
 
-bd.interp_groups(300, glovar, dr)
-# bd.all_samples(glovar, dr)
-# bd.jank(2, 50, 3, 7, glovar, dr) # increase spacing out of jank over
-# bd.mixed_silence(1, 20, 0.8, 0.75, glovar, dr)
-# bd.long_short(2, 100, 800, glovar, dr)
-# bd.search_small(2, 50, 3, 7, glovar, dr)
-# bd.accum_phrase(1, 100, glovar, dr)
-# bd.long_short_exp(2, 500, 0.3, 0.9, glovar, dr)
+### --- Gestalts --- ###
+# gs.law_of_continuity(2, 10, glovar, direc)
+
+### --- iters --- ###
+
+#corpus 1#
+sample_set = EntryMatcher()
+sample_set.input_vars('amp < 0 centroid < 700 duration > 0')
+sample_set.match(glovar)
+sample_set.match_result = sample_set.match_result[:5]
+print(sample_set.match_result)
+#corpus 2#
+corpus_2 = EntryMatcher()
+corpus_2.input_vars('amp < 0 centroid > 13000 duration > 0')
+corpus_2.match(glovar)
+corpus_2.match_result = corpus_2.match_result[:100]
+print(corpus_2.match_result)
+
+
+#Setup classes#
+sample_container = DataContainer()
+sample_org = ter.iterFunctions(sample_container)
+group_container = DataContainer()
+group_org = ter.iterFunctions(group_container)
+function_organiser = MetaWrapper(sample_set, corpus_2) # pass this an instance of EntryMatcher() so it knows where to pull lists from
+
+orglist = [0, 1, 2, 3]
+rn.shuffle(orglist)
+group_org.products(orglist, 2)
+
+function_organiser.call_functions(group_container.big_list, sample_org)
+print(sample_container.big_list)
+
+sample_container.output(glovar, direc)
+
+# A container for descriptor lists?
+
+# operations.permute(corp, 2)
+# operations.products(corp, 2)
+# operations.combinations(corp, 2)
+# print(len(container.big_list), container.big_list)
+# print(container.big_list)
+# container.output(glovar, direc)
+# operations.zip_unzip(corp, corp2)
+# bd.jank(1, 50, 3, 45, glovar, direc)
 
 
 ### each study is just one sample set, and you demonstrate a number of processes based on this ####### !!!!!!!!!!!!!!!!!!
 ### Maximum each variation deals with only one or two sample sets. can we use more? ###
-
-
-### Test entry matchting ###
-# em = EntryMatcher()
-# em.input_vars(input_helper())
-# em.match(glovar)
-
-# for elem in em.match_result:
-#     print(glovar.duration[elem])
 ### ---- --- ---- --- ---- --- ---- ###
 
     # Trees
@@ -180,22 +217,3 @@ bd.interp_groups(300, glovar, dr)
     # Different gestalts of the same unit set
 
     # Aligning objects creates a gestalt unit. Removing the alignment points to something else. What is the something else? How are they aligned? Is it a number of samples that are arranged vertically and thus create a chord?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

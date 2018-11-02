@@ -86,3 +86,7 @@ def lines():
 def get_path():
     path = os.path.dirname(os.path.abspath(__file__))
     return path
+    
+def status(progress, max_progress):
+    os.system("clear")
+    print((progress / max_progress) * 100.)

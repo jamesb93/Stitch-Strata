@@ -18,6 +18,8 @@ class iterFunctions:
         self.combo_list = []
         # container_stuff #
         self.container_name = container_name
+        
+        
 
     def zip_unzip(self, list_1, list_2):
         """ 

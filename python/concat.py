@@ -10,6 +10,7 @@ import re
 from cc_util import input_helper
 from cc_util import CreateDir
 from cc_util import GlobalVariables
+from cc_util import translate
 from cc_data import EntryMatcher
 from cc_data import DataContainer
 from cc_data import MetaWrapper
@@ -25,9 +26,10 @@ fav_descs = [
     'amp <-> 12 -36 centroid <-> 500 7500 duration < 500', # good with iters
     'amp <-> 12 -48 centroid <-> 500 5000 duration < 50',
     'amp <-> 1 -55.220404 centroid <-> 1 5051.7412145 duration > 0',
-    'amp < 0 centroid > 7500 duration > 0' 
-    'amp < 0 centroid < 700 duration > 0'
-    'amp < 0 centroid > 13000 duration > 0'
+    'amp < 0 centroid > 7500 duration > 0', 
+    'amp < 0 centroid < 700 duration > 0',
+    'amp < 0 centroid > 13000 duration > 0',
+    'amp < 0 centroid > 8000 duration > 250',
 ]
 
 #---------- Classes ----------#
@@ -116,38 +118,37 @@ class MetaBehaviour:
     #build one that layers a repetitive long sound with a relatively stable stream of another
 
 #---------- Builder Functions ----------#
-def layers(joins):
+def layers(joins, obj, drs):
 
     gos = EntryMatcher()
-    gos.input_vars('amp <-> 6 -54 centroid <-> 90 4968 duration < 500')
-    gos.match()
-    print(gos.matcher_result)
-    rn.shuffle(gos.matcher_result)
+    gos.input_vars('amp > -50 centroid <-> 1000 6000 duration < 500')
+    gos.match(obj)
+    print(gos.match_result)
+    rn.shuffle(gos.match_result)
     concat = AudioSegment.empty()
     if gos.match_len == 1:
         print('There was only one matched element, you need more')
         exit()
     
-    for i in range(len(gos.matcher_result)):
-        choice = str(gos.matcher_result[i])
+    for i in range(len(gos.match_result)):
+        choice = str(gos.match_result[i])
         print('choice is', choice)
-        join_sound = AudioSegment.from_file(source + choice + affix)
+        join_sound = AudioSegment.from_file(obj.source + choice + obj.affix)
         concat += join_sound
-
     for j in range(joins):
-        probability = translate(j, 0, joins, 5, 95  )
+        probability = translate(j, 0, joins, 5, 95)
         for x in range(gos.match_len):
-            choice = str(gos.matcher_result[x])
-            join_sound = AudioSegment.from_file(source + choice + affix)
+            choice = str(gos.match_result[x])
+            join_sound = AudioSegment.from_file(obj.source + choice + obj.affix)
             gain = rn.randint(0, 100)
             if gain > probability:
                 join_sound = join_sound.apply_gain(0)
             elif gain < probability:
                 join_sound = join_sound.apply_gain(-120)
             concat += join_sound
-       
-    concat.export(dr.new_dir + '0' + affix, format="wav")
-
+    print('i got here')
+    concat.export(drs.new_dir + '0' + obj.affix, format="wav")
+layers(50, glovar, direc)
 ### --- Builders --- ###
 # bd.interp_groups(300, glovar, direc)
 # bd.all_samples(glovar, direc)
@@ -165,9 +166,9 @@ def layers(joins):
 
 #corpus 1#
 sample_set = EntryMatcher()
-sample_set.input_vars('amp < 0 centroid < 700 duration > 0')
+sample_set.input_vars('amp <-> 7 -48 centroid <-> 250 5000 duration < 50')
 sample_set.match(glovar)
-sample_set.match_result = sample_set.match_result[:5]
+sample_set.match_result = sample_set.match_result[:10]
 print(sample_set.match_result)
 #corpus 2#
 corpus_2 = EntryMatcher()
@@ -178,31 +179,20 @@ print(corpus_2.match_result)
 
 
 #Setup classes#
-sample_container = DataContainer()
-sample_org = ter.iterFunctions(sample_container)
-group_container = DataContainer()
-group_org = ter.iterFunctions(group_container)
-function_organiser = MetaWrapper(sample_set, corpus_2) # pass this an instance of EntryMatcher() so it knows where to pull lists from
+# sample_container = DataContainer()
+# sample_org = ter.iterFunctions(sample_container)
+# group_container = DataContainer()
+# group_org = ter.iterFunctions(group_container)
+# function_organiser = MetaWrapper(sample_set, corpus_2) # pass this an instance of EntryMatcher() so it knows where to pull lists from
 
-orglist = [0, 1, 2, 3]
-rn.shuffle(orglist)
-group_org.products(orglist, 2)
+# orglist = [1, 2]
+# rn.shuffle(orglist)
+# group_org.products(orglist, 2)
 
-function_organiser.call_functions(group_container.big_list, sample_org)
-print(sample_container.big_list)
+# function_organiser.call_functions(group_container.big_list, sample_org)
+# print(sample_container.big_list)
 
-sample_container.output(glovar, direc)
-
-# A container for descriptor lists?
-
-# operations.permute(corp, 2)
-# operations.products(corp, 2)
-# operations.combinations(corp, 2)
-# print(len(container.big_list), container.big_list)
-# print(container.big_list)
-# container.output(glovar, direc)
-# operations.zip_unzip(corp, corp2)
-# bd.jank(1, 50, 3, 45, glovar, direc)
+# sample_container.output(glovar, direc)
 
 
 ### each study is just one sample set, and you demonstrate a number of processes based on this ####### !!!!!!!!!!!!!!!!!!

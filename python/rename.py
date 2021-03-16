@@ -1,5 +1,3 @@
-
-
 import os
 
 source = '/Users/jamesbradbury/Sync/concat-ter/phonemes'
@@ -14,4 +12,3 @@ for i in range(0, num_files):
     full_path   = f'{source}/{audio_files[i]}'
     new_path = f'{source}/{i}.wav'
     os.rename(full_path, new_path)
-

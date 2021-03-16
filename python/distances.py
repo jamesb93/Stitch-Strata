@@ -87,7 +87,7 @@ def highlightplot(pindex, neighbours):
     plt.show()
 
 def plot_web():
-    spat.delaunay_plot_2d(triang)
+    spat.delaunay_plot_2d(delaun)
     plt.show()
 
 def find_all_neighbours(delaunay):
@@ -119,6 +119,7 @@ for i in range (data_len):
     coords[i] = [data.DURATION[i], data.CENTROID[i]]
 
 delaun = spat.Delaunay(coords)
+plot_web()
 # all_neighbours = find_all_neighbours(triang)
 
 ### Find neighbours of specific point (pindex) ###
